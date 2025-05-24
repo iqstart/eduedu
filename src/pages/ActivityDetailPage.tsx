@@ -1,26 +1,36 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Lock } from 'lucide-react';
 import Button from '../components/ui/Button';
 import activitiesData, { Activity } from '../data/activitiesData';
+import { useAuth } from '../contexts/AuthContext';
 
 const ActivityDetailPage: React.FC = () => {
   const { activityId } = useParams<{ activityId: string }>();
   const navigate = useNavigate();
   const [started, setStarted] = useState(false);
+  const { user } = useAuth();
 
   // Find the activity by id (string)
   const activity: Activity | undefined = activitiesData.find((act) => act.id === activityId);
+
+  // Check if user has an active subscription
+  const hasSubscription = user?.subscription && user.subscription !== 'free';
 
   useEffect(() => {
     window.scrollTo(0, 0);
     if (!activityId || !activity) {
       navigate('/activities');
     }
-  }, [activityId, activity, navigate]);
+    
+    // Redirect to subscription page if no subscription
+    if (!hasSubscription) {
+      navigate('/subscription');
+    }
+  }, [activityId, activity, navigate, hasSubscription]);
 
-  if (!activity) {
-    return null; // or show a loading spinner or 404 message here
+  if (!activity || !hasSubscription) {
+    return null;
   }
 
   return (
@@ -53,29 +63,40 @@ const ActivityDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <h1 className="font-bold text-3xl md:text-4xl text-gray-800 mb-4">{activity.title}</h1>
-
-                <p className="text-lg text-gray-600 mb-6">{activity.description}</p>
-
-                {Array.isArray(activity.skills) && activity.skills.length > 0 && (
-                  <div className="mb-8">
-                    <h3 className="font-medium text-gray-800 mb-2">Skills Developed:</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {activity.skills.map((skill, i) => (
-                        <span
-                          key={i}
-                          className="bg-secondary-100 text-secondary-800 text-sm px-3 py-1 rounded-full"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
+                <div className="flex items-center space-x-2 mb-4">
+                  <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-primary-100 text-primary-800">
+                    {activity.category}
+                  </span>
+                  <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">
+                    Ages {activity.ageRange}
+                  </span>
+                </div>
+                
+                <h1 className="font-nunito font-bold text-3xl md:text-4xl text-gray-800 mb-4">
+                  {activity.title}
+                </h1>
+                
+                <p className="text-lg text-gray-600 mb-6">
+                  {activity.description}
+                </p>
+                
+                <div className="mb-8">
+                  <h3 className="font-medium text-gray-800 mb-2">Skills Developed:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {activity.skills.map((skill, index) => (
+                      <span 
+                        key={index}
+                        className="bg-secondary-100 text-secondary-800 text-sm px-3 py-1 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
                   </div>
-                )}
-
-                <Button
-                  variant="primary"
-                  size="lg"
+                </div>
+                
+                <Button 
+                  variant="primary" 
+                  size="lg" 
                   onClick={() => setStarted(true)}
                   className="w-full md:w-auto"
                 >
@@ -83,26 +104,27 @@ const ActivityDetailPage: React.FC = () => {
                 </Button>
               </div>
             </div>
-
+            
             <div className="bg-white p-6 rounded-lg shadow-sm mb-10">
               <h2 className="text-xl font-semibold mb-2">How to Play</h2>
-              <p className="text-gray-600">{activity.instructions}</p>
+              <p className="text-gray-600 mb-4">{activity.instructions}</p>
             </div>
           </>
         ) : (
           <div>
-            <button
+            <button 
               onClick={() => setStarted(false)}
               className="mb-6 inline-flex items-center text-primary-600 hover:text-primary-700"
-              aria-label="Exit activity"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Exit Activity
             </button>
-
+            
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h1 className="font-bold text-2xl text-gray-800 mb-6 text-center">{activity.title}</h1>
-
+              <h1 className="font-nunito font-bold text-2xl text-gray-800 mb-6 text-center">
+                {activity.title}
+              </h1>
+              
               <div className="aspect-video">
                 <iframe
                   src={activity.tinyTapEmbedUrl}
